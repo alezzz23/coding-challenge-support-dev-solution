@@ -5,9 +5,12 @@ import { prisma } from '@/lib/prisma'
 async function sendEmailNotification(ticketId: string, companyId: string) {
   // BUG 3 INTENCIONAL: Esta promesa nunca se resuelve
   // El hilo se queda bloqueado esperando.
-  return new Promise((resolve) => {
+  return new Promise<void>((resolve) => {
     console.log(`Enviando notificación urgente para el ticket ${ticketId}...`)
-    // Falta: resolve() o hay un error de lógica
+    setTimeout(() => {
+      console.log(`Notificación enviada para ${companyId} (ticket ${ticketId}).`)
+      resolve()
+    }, 250)
   })
 }
 
@@ -19,6 +22,8 @@ export async function PATCH(
     const { id } = await params;
     const { status } = await request.json()
 
+    const currentCompanyId = 'TechCorp'
+
     // Buscamos el ticket para ver su prioridad
     const ticket = await prisma.ticket.findUnique({
       where: { id },
@@ -26,6 +31,10 @@ export async function PATCH(
 
     if (!ticket) {
       return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 })
+    }
+
+    if (ticket.companyId !== currentCompanyId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     if (ticket.priority === 'Urgente' && status === 'Resuelto') {

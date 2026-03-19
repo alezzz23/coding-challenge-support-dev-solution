@@ -29,10 +29,18 @@ export default function Dashboard() {
   const fetchTickets = async () => {
     try {
       const res = await fetch("/api/tickets")
+      if (!res.ok) {
+        const err = await res.json().catch(() => null)
+        console.error("Error fetching tickets:", err)
+        setTickets([])
+        return
+      }
+
       const data = await res.json()
-      setTickets(data)
+      setTickets(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Error fetching tickets:", error)
+      setTickets([])
     } finally {
       setLoading(false)
     }
@@ -51,15 +59,14 @@ export default function Dashboard() {
 
       if (res.ok) {
         const updatedTicket = await res.json()
-        
+
         // BUG 2 INTENCIONAL: Mutación de estado de React
         // Se altera el arreglo original en lugar de crear uno nuevo.
         // Esto causa que React no detecte el cambio y no vuelva a renderizar la UI inmediatamente.
-        const ticketIndex = tickets.findIndex((t) => t.id === updatedTicket.id)
-        if (ticketIndex !== -1) {
-          tickets[ticketIndex] = updatedTicket
-          setTickets(tickets) // React no verá esto como un cambio de estado válido
-        }
+
+        setTickets((prev: Ticket[]) =>
+          prev.map((t: Ticket) => (t.id === updatedTicket.id ? updatedTicket : t))
+        )
       }
     } catch (error) {
       console.error("Error resolving ticket:", error)
@@ -80,7 +87,7 @@ export default function Dashboard() {
     // BUG 1 INTENCIONAL: El Navbar inferior bloquea el contenido
     // En móviles, falta un padding inferior (ej. pb-20) en este contenedor para que el 
     // último ticket no quede escondido detrás del fixed footer y su botón sea in-clickeable.
-    <div className="min-h-screen bg-gray-50 relative">
+    <div className="min-h-screen bg-gray-50 relative pb-24 md:pb-0">
       
       {/* Header Fijo */}
       <header className="bg-blue-600 text-white shadow-md sticky top-0 z-10">
